@@ -10,40 +10,30 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
+    }
+    h1 {
       text-align: center;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 20px auto;
-    }
-    th, td {
+    .order {
       border: 1px solid #ccc;
+      border-radius: 5px;
       padding: 10px;
-      text-align: center;
+      margin: 10px 0;
     }
-    th {
-      background-color: #f4f4f4;
+    .order p {
+      margin: 5px 0;
+    }
+    .status-buttons button {
+      margin-right: 5px;
     }
   </style>
 </head>
 <body>
   <h1>Painel Administrativo</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Mesa</th>
-        <th>Produto</th>
-        <th>Preço</th>
-        <th>Observações</th>
-        <th>Horário</th>
-      </tr>
-    </thead>
-    <tbody id="ordersTable">
-      <!-- Os dados serão carregados aqui -->
-    </tbody>
-  </table>
+  <div id="orders"></div>
+
   <script>
+    // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyA2_SmYTeadQYjvrZRFYKWMyq56XWGyvMA",
       authDomain: "garconete-pedidos.firebaseapp.com",
@@ -54,37 +44,61 @@
       appId: "1:992618642842:web:7941bcfaad910e58d20e23"
     };
 
-    // Inicializar Firebase
+    // Inicializar o Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Carregar Pedidos
-    function fetchOrders() {
-      const ordersRef = database.ref("pedidos");
-      const ordersTable = document.getElementById("ordersTable");
+    // Referência para os pedidos no Realtime Database
+    const ordersRef = database.ref("pedidos");
 
-      ordersRef.on("value", (snapshot) => {
-        const orders = snapshot.val();
-        ordersTable.innerHTML = ""; // Limpa a tabela antes de popular
+    // Função para renderizar pedidos
+    function renderOrders(orders) {
+      const ordersDiv = document.getElementById("orders");
+      ordersDiv.innerHTML = ""; // Limpa a lista antes de renderizar
 
-        for (const key in orders) {
-          const order = orders[key];
-          const row = `
-            <tr>
-              <td>${order.table}</td>
-              <td>${order.product}</td>
-              <td>R$ ${order.price.toFixed(2)}</td>
-              <td>${order.notes || "Sem observações"}</td>
-              <td>${new Date(order.timestamp).toLocaleString()}</td>
-            </tr>
-          `;
-          ordersTable.innerHTML += row;
-        }
+      Object.keys(orders).forEach(orderId => {
+        const order = orders[orderId];
+
+        const orderDiv = document.createElement("div");
+        orderDiv.className = "order";
+
+        orderDiv.innerHTML = `
+          <p><strong>Mesa:</strong> ${order.table}</p>
+          <p><strong>Produto:</strong> ${order.product}</p>
+          <p><strong>Preço:</strong> R$${order.price.toFixed(2)}</p>
+          <p><strong>Observações:</strong> ${order.notes || "Nenhuma"}</p>
+          <p><strong>Status:</strong> ${order.status || "Recebido"}</p>
+          <div class="status-buttons">
+            <button onclick="updateStatus('${orderId}', 'Em andamento')">Em andamento</button>
+            <button onclick="updateStatus('${orderId}', 'Entregue')">Entregue</button>
+          </div>
+        `;
+
+        ordersDiv.appendChild(orderDiv);
       });
     }
 
-    // Chamar a função para buscar os pedidos
-    fetchOrders();
+    // Ouve as mudanças nos pedidos no Firebase
+    ordersRef.on("value", snapshot => {
+      const orders = snapshot.val();
+      if (orders) {
+        renderOrders(orders);
+      } else {
+        document.getElementById("orders").innerHTML = "<p>Nenhum pedido encontrado.</p>";
+      }
+    });
+
+    // Atualiza o status do pedido no Firebase
+    function updateStatus(orderId, status) {
+      ordersRef.child(orderId).update({ status })
+        .then(() => {
+          alert("Status atualizado para: " + status);
+        })
+        .catch(error => {
+          console.error("Erro ao atualizar status:", error);
+          alert("Erro ao atualizar o status. Tente novamente.");
+        });
+    }
   </script>
 </body>
 </html>
