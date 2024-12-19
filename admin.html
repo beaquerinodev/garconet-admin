@@ -10,121 +10,81 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-      padding: 10px;
-    }
-    h1 {
       text-align: center;
     }
-    .status-section {
-      margin-bottom: 30px;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px auto;
     }
-    .status-section h2 {
-      margin-top: 0;
-    }
-    .order-card {
+    th, td {
       border: 1px solid #ccc;
       padding: 10px;
-      margin: 10px 0;
-      border-radius: 5px;
+      text-align: center;
     }
-    .order-card button {
-      margin: 5px;
+    th {
+      background-color: #f4f4f4;
     }
   </style>
 </head>
 <body>
   <h1>Painel Administrativo</h1>
-
-  <!-- Seção de pedidos pendentes -->
-  <div class="status-section" id="pending-section">
-    <h2>Pendentes</h2>
-    <div id="pending-orders"></div>
-  </div>
-
-  <!-- Seção de pedidos em andamento -->
-  <div class="status-section" id="in-progress-section">
-    <h2>Em Andamento</h2>
-    <div id="in-progress-orders"></div>
-  </div>
-
-  <!-- Seção de pedidos entregues -->
-  <div class="status-section" id="delivered-section">
-    <h2>Entregues</h2>
-    <div id="delivered-orders"></div>
-  </div>
-
+  <table>
+    <thead>
+      <tr>
+        <th>Mesa</th>
+        <th>Produto</th>
+        <th>Preço</th>
+        <th>Observações</th>
+        <th>Horário</th>
+      </tr>
+    </thead>
+    <tbody id="ordersTable">
+      <!-- Os dados serão carregados aqui -->
+    </tbody>
+  </table>
   <script>
-    // Configuração do Firebase
     const firebaseConfig = {
-      apiKey: "API_KEY",
-      authDomain: "AUTH_DOMAIN",
-      databaseURL: "DATABASE_URL",
-      projectId: "PROJECT_ID",
-      storageBucket: "STORAGE_BUCKET",
-      messagingSenderId: "MESSAGING_SENDER_ID",
-      appId: "APP_ID"
+      apiKey: "AIzaSyA2_SmYTeadQYjvrZRFYKWMyq56XWGyvMA",
+      authDomain: "garconete-pedidos.firebaseapp.com",
+      databaseURL: "https://garconete-pedidos-default-rtdb.firebaseio.com",
+      projectId: "garconete-pedidos",
+      storageBucket: "garconete-pedidos.appspot.com",
+      messagingSenderId: "992618642842",
+      appId: "1:992618642842:web:7941bcfaad910e58d20e23"
     };
 
     // Inicializar Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
-    // Referência para pedidos
-    const ordersRef = database.ref("pedidos");
+    // Carregar Pedidos
+    function fetchOrders() {
+      const ordersRef = database.ref("pedidos");
+      const ordersTable = document.getElementById("ordersTable");
 
-    // Atualiza a exibição de pedidos
-    function updateOrdersDisplay(snapshot) {
-      const pendingOrdersDiv = document.getElementById("pending-orders");
-      const inProgressOrdersDiv = document.getElementById("in-progress-orders");
-      const deliveredOrdersDiv = document.getElementById("delivered-orders");
+      ordersRef.on("value", (snapshot) => {
+        const orders = snapshot.val();
+        ordersTable.innerHTML = ""; // Limpa a tabela antes de popular
 
-      // Limpar listas existentes
-      pendingOrdersDiv.innerHTML = "";
-      inProgressOrdersDiv.innerHTML = "";
-      deliveredOrdersDiv.innerHTML = "";
-
-      // Iterar pelos pedidos
-      snapshot.forEach(orderSnapshot => {
-        const orderId = orderSnapshot.key;
-        const order = orderSnapshot.val();
-        const orderDiv = document.createElement("div");
-        orderDiv.className = "order-card";
-        orderDiv.innerHTML = `
-          <p><strong>Mesa:</strong> ${order.table}</p>
-          <p><strong>Produto:</strong> ${order.product}</p>
-          <p><strong>Preço:</strong> R$${order.price.toFixed(2)}</p>
-          <p><strong>Observações:</strong> ${order.notes || "Nenhuma"}</p>
-          <p><strong>Status:</strong> ${order.status}</p>
-          <button onclick="updateOrderStatus('${orderId}', 'Em Andamento')">Mover para Em Andamento</button>
-          <button onclick="updateOrderStatus('${orderId}', 'Entregue')">Mover para Entregue</button>
-        `;
-
-        // Adicionar o pedido na seção apropriada
-        if (order.status === "Pendente") {
-          pendingOrdersDiv.appendChild(orderDiv);
-        } else if (order.status === "Em Andamento") {
-          inProgressOrdersDiv.appendChild(orderDiv);
-        } else if (order.status === "Entregue") {
-          deliveredOrdersDiv.appendChild(orderDiv);
+        for (const key in orders) {
+          const order = orders[key];
+          const row = `
+            <tr>
+              <td>${order.table}</td>
+              <td>${order.product}</td>
+              <td>R$ ${order.price.toFixed(2)}</td>
+              <td>${order.notes || "Sem observações"}</td>
+              <td>${new Date(order.timestamp).toLocaleString()}</td>
+            </tr>
+          `;
+          ordersTable.innerHTML += row;
         }
       });
     }
 
-    // Atualizar status do pedido
-    function updateOrderStatus(orderId, newStatus) {
-      const orderRef = database.ref(`pedidos/${orderId}`);
-      orderRef.update({ status: newStatus })
-        .then(() => {
-          alert(`Pedido movido para: ${newStatus}`);
-        })
-        .catch(error => {
-          console.error("Erro ao atualizar status:", error);
-          alert("Erro ao atualizar status.");
-        });
-    }
-
-    // Escutar alterações nos pedidos
-    ordersRef.on("value", updateOrdersDisplay);
+    // Chamar a função para buscar os pedidos
+    fetchOrders();
   </script>
 </body>
 </html>
