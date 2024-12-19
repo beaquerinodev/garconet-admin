@@ -4,41 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Administrativo</title>
-  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    h1 {
-      text-align: center;
-    }
-    .mesa {
-      margin-bottom: 20px;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    .order {
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 10px;
-      margin: 10px 0;
-    }
-    .order p {
-      margin: 5px 0;
-    }
-    .status-buttons button {
-      margin-right: 5px;
-    }
-  </style>
-</head>
-<body>
-  <h1>Painel Administrativo</h1>
-  <div id="orders"></div>
+  <script type="module">
+    // Importando o Firebase Modular
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js";
 
-  <script>
     // Configuração do Firebase
     const firebaseConfig = {
       apiKey: "sua-api-key",
@@ -51,11 +21,11 @@
     };
 
     // Inicializar o Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
 
     // Referência para os pedidos no Realtime Database
-    const ordersRef = database.ref("pedidos");
+    const ordersRef = ref(database, "pedidos");
 
     // Função para renderizar pedidos agrupados por mesa
     function renderOrders(orders) {
@@ -104,7 +74,7 @@
     }
 
     // Ouve as mudanças nos pedidos no Firebase
-    ordersRef.on("value", snapshot => {
+    onValue(ordersRef, snapshot => {
       const orders = snapshot.val();
       if (orders) {
         renderOrders(orders);
@@ -114,8 +84,9 @@
     });
 
     // Atualiza o status do pedido no Firebase
-    function updateStatus(orderId, status) {
-      ordersRef.child(orderId).update({ status })
+    window.updateStatus = function (orderId, status) {
+      const orderRef = ref(database, `pedidos/${orderId}`);
+      update(orderRef, { status })
         .then(() => {
           alert("Status atualizado para: " + status);
         })
@@ -123,7 +94,38 @@
           console.error("Erro ao atualizar status:", error);
           alert("Erro ao atualizar o status. Tente novamente.");
         });
-    }
+    };
   </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .mesa {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .order {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 10px;
+      margin: 10px 0;
+    }
+    .order p {
+      margin: 5px 0;
+    }
+    .status-buttons button {
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Painel Administrativo</h1>
+  <div id="orders"></div>
 </body>
 </html>
