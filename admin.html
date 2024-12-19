@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Administrativo</title>
+  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 10px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .status-section {
+      margin-bottom: 30px;
+    }
+    .status-section h2 {
+      margin-top: 0;
+    }
+    .order-card {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .order-card button {
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Painel Administrativo</h1>
+
+  <!-- Seção de pedidos pendentes -->
+  <div class="status-section" id="pending-section">
+    <h2>Pendentes</h2>
+    <div id="pending-orders"></div>
+  </div>
+
+  <!-- Seção de pedidos em andamento -->
+  <div class="status-section" id="in-progress-section">
+    <h2>Em Andamento</h2>
+    <div id="in-progress-orders"></div>
+  </div>
+
+  <!-- Seção de pedidos entregues -->
+  <div class="status-section" id="delivered-section">
+    <h2>Entregues</h2>
+    <div id="delivered-orders"></div>
+  </div>
+
+  <script>
+    // Configuração do Firebase
+    const firebaseConfig = {
+      apiKey: "API_KEY",
+      authDomain: "AUTH_DOMAIN",
+      databaseURL: "DATABASE_URL",
+      projectId: "PROJECT_ID",
+      storageBucket: "STORAGE_BUCKET",
+      messagingSenderId: "MESSAGING_SENDER_ID",
+      appId: "APP_ID"
+    };
+
+    // Inicializar Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // Referência para pedidos
+    const ordersRef = database.ref("pedidos");
+
+    // Atualiza a exibição de pedidos
+    function updateOrdersDisplay(snapshot) {
+      const pendingOrdersDiv = document.getElementById("pending-orders");
+      const inProgressOrdersDiv = document.getElementById("in-progress-orders");
+      const deliveredOrdersDiv = document.getElementById("delivered-orders");
+
+      // Limpar listas existentes
+      pendingOrdersDiv.innerHTML = "";
+      inProgressOrdersDiv.innerHTML = "";
+      deliveredOrdersDiv.innerHTML = "";
+
+      // Iterar pelos pedidos
+      snapshot.forEach(orderSnapshot => {
+        const orderId = orderSnapshot.key;
+        const order = orderSnapshot.val();
+        const orderDiv = document.createElement("div");
+        orderDiv.className = "order-card";
+        orderDiv.innerHTML = `
+          <p><strong>Mesa:</strong> ${order.table}</p>
+          <p><strong>Produto:</strong> ${order.product}</p>
+          <p><strong>Preço:</strong> R$${order.price.toFixed(2)}</p>
+          <p><strong>Observações:</strong> ${order.notes || "Nenhuma"}</p>
+          <p><strong>Status:</strong> ${order.status}</p>
+          <button onclick="updateOrderStatus('${orderId}', 'Em Andamento')">Mover para Em Andamento</button>
+          <button onclick="updateOrderStatus('${orderId}', 'Entregue')">Mover para Entregue</button>
+        `;
+
+        // Adicionar o pedido na seção apropriada
+        if (order.status === "Pendente") {
+          pendingOrdersDiv.appendChild(orderDiv);
+        } else if (order.status === "Em Andamento") {
+          inProgressOrdersDiv.appendChild(orderDiv);
+        } else if (order.status === "Entregue") {
+          deliveredOrdersDiv.appendChild(orderDiv);
+        }
+      });
+    }
+
+    // Atualizar status do pedido
+    function updateOrderStatus(orderId, newStatus) {
+      const orderRef = database.ref(`pedidos/${orderId}`);
+      orderRef.update({ status: newStatus })
+        .then(() => {
+          alert(`Pedido movido para: ${newStatus}`);
+        })
+        .catch(error => {
+          console.error("Erro ao atualizar status:", error);
+          alert("Erro ao atualizar status.");
+        });
+    }
+
+    // Escutar alterações nos pedidos
+    ordersRef.on("value", updateOrdersDisplay);
+  </script>
+</body>
+</html>
