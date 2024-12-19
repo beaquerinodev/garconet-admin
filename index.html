@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Administrativo</title>
-  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -13,6 +13,12 @@
     }
     h1 {
       text-align: center;
+    }
+    .mesa {
+      margin-bottom: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
     }
     .order {
       border: 1px solid #ccc;
@@ -35,46 +41,65 @@
   <script>
     // Configuração do Firebase
     const firebaseConfig = {
-      apiKey: "AIzaSyA2_SmYTeadQYjvrZRFYKWMyq56XWGyvMA",
-      authDomain: "garconete-pedidos.firebaseapp.com",
-      databaseURL: "https://garconete-pedidos-default-rtdb.firebaseio.com",
-      projectId: "garconete-pedidos",
-      storageBucket: "garconete-pedidos.appspot.com",
-      messagingSenderId: "992618642842",
-      appId: "1:992618642842:web:7941bcfaad910e58d20e23"
+      apiKey: "sua-api-key",
+      authDomain: "seu-auth-domain",
+      databaseURL: "seu-database-url",
+      projectId: "seu-project-id",
+      storageBucket: "seu-storage-bucket",
+      messagingSenderId: "seu-messaging-sender-id",
+      appId: "seu-app-id"
     };
 
     // Inicializar o Firebase
-    firebase.initializeApp(firebaseConfig);
+    const app = firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
 
     // Referência para os pedidos no Realtime Database
     const ordersRef = database.ref("pedidos");
 
-    // Função para renderizar pedidos
+    // Função para renderizar pedidos agrupados por mesa
     function renderOrders(orders) {
       const ordersDiv = document.getElementById("orders");
       ordersDiv.innerHTML = ""; // Limpa a lista antes de renderizar
 
+      const mesas = {}; // Objeto para agrupar pedidos por mesa
+
       Object.keys(orders).forEach(orderId => {
         const order = orders[orderId];
+        if (!mesas[order.table]) {
+          mesas[order.table] = [];
+        }
+        mesas[order.table].push({ ...order, id: orderId });
+      });
 
-        const orderDiv = document.createElement("div");
-        orderDiv.className = "order";
+      Object.keys(mesas).forEach(mesa => {
+        const mesaDiv = document.createElement("div");
+        mesaDiv.className = "mesa";
 
-        orderDiv.innerHTML = `
-          <p><strong>Mesa:</strong> ${order.table}</p>
-          <p><strong>Produto:</strong> ${order.product}</p>
-          <p><strong>Preço:</strong> R$${parseFloat(order.price).toFixed(2)}</p>
-          <p><strong>Observações:</strong> ${order.notes || "Nenhuma"}</p>
-          <p><strong>Status:</strong> ${order.status || "Recebido"}</p>
-          <div class="status-buttons">
-            <button onclick="updateStatus('${orderId}', 'Em andamento')">Em andamento</button>
-            <button onclick="updateStatus('${orderId}', 'Entregue')">Entregue</button>
-          </div>
-        `;
+        let total = 0; // Total por mesa
+        mesas[mesa].forEach(order => {
+          total += parseFloat(order.price);
 
-        ordersDiv.appendChild(orderDiv);
+          const orderDiv = document.createElement("div");
+          orderDiv.className = "order";
+
+          orderDiv.innerHTML = `
+            <p><strong>Produto:</strong> ${order.product}</p>
+            <p><strong>Preço:</strong> R$${parseFloat(order.price).toFixed(2)}</p>
+            <p><strong>Observações:</strong> ${order.notes || "Nenhuma"}</p>
+            <p><strong>Status:</strong> ${order.status || "Recebido"}</p>
+            <div class="status-buttons">
+              <button onclick="updateStatus('${order.id}', 'Em andamento')">Em andamento</button>
+              <button onclick="updateStatus('${order.id}', 'Entregue')">Entregue</button>
+            </div>
+          `;
+
+          mesaDiv.appendChild(orderDiv);
+        });
+
+        mesaDiv.innerHTML = `<h3>Mesa ${mesa}</h3>` + mesaDiv.innerHTML;
+        mesaDiv.innerHTML += `<p><strong>Total:</strong> R$${total.toFixed(2)}</p>`;
+        ordersDiv.appendChild(mesaDiv);
       });
     }
 
