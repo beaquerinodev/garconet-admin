@@ -13,6 +13,9 @@
     }
     h1 {
       text-align: center;
+      background-color: #f4a460;
+      padding: 10px;
+      color: white;
     }
     table {
       width: 100%;
@@ -40,6 +43,10 @@
     }
     .hidden {
       display: none;
+    }
+    .total {
+      font-weight: bold;
+      text-align: right;
     }
   </style>
 </head>
@@ -84,22 +91,24 @@
 
       Object.keys(orders).forEach(orderId => {
         const order = orders[orderId];
-        const { table, product, timestamp, notes, status } = order;
+        const { table, product, timestamp, notes, price, status } = order;
 
-        if (!mesas[table]) mesas[table] = { current: [], history: [] };
+        if (!mesas[table]) mesas[table] = { current: [], history: [], total: 0 };
 
         if (status === "Entregue") {
           mesas[table].history.push(order);
         } else {
           mesas[table].current.push({ ...order, id: orderId });
         }
+
+        mesas[table].total += parseFloat(price || 0);
       });
 
       Object.keys(mesas).forEach(table => {
         const tableRow = document.createElement("tr");
         tableRow.className = "expandable order-row";
         tableRow.innerHTML = `
-          <td colspan="5">Mesa ${table}</td>
+          <td colspan="5">Mesa ${table} - Total: R$${mesas[table].total.toFixed(2)}</td>
         `;
         tableRow.onclick = () => {
           const historyRow = document.getElementById(`history-${table}`);
@@ -116,7 +125,7 @@
             <td>${new Date(order.timestamp).toLocaleTimeString()}</td>
             <td>${order.notes || "Nenhuma"}</td>
             <td>
-              <button onclick="updateStatus('${order.id}', 'Em andamento')">${order.status === "Recebido" ? "Em andamento" : "Entregue"}</button>
+              <button onclick="updateStatus('${order.id}', '${order.status === "Recebido" ? "Em andamento" : "Entregue"}')">${order.status === "Recebido" ? "Em andamento" : "Entregue"}</button>
             </td>
           `;
           ordersDiv.appendChild(row);
@@ -129,7 +138,7 @@
           <td colspan="5">
             <strong>Pedidos Entregues:</strong>
             <ul>
-              ${mesas[table].history.map(h => `<li>${h.product} - R$${h.price.toFixed(2)}</li>`).join("")}
+              ${mesas[table].history.map(h => `<li>${h.product} - R$${h.price ? h.price.toFixed(2) : "0.00"}</li>`).join("")}
             </ul>
           </td>
         `;
